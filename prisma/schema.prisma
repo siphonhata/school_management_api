@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model classroom {
+  id           String      @id @default(uuid())
+  class_number Int?
+  grade        String?     @db.VarChar(10)
+  students     students[]
+  teacher      teacher[]
+  timetable    timetable[]
+}
+
+model extracurricular_activity {
+  id            String    @id @default(uuid())
+  activity_name String?   @db.VarChar(255)
+  teacher       String?   @db.VarChar(255)
+  description   String?
+  start_date    DateTime? @db.Date
+  end_date      DateTime? @db.Date
+}
+
+model parent {
+  id        String    @id @default(uuid())
+  userid    String?   @db.VarChar(36)
+  studentid String?   @db.VarChar(36)
+  students  students? @relation(fields: [studentid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users     users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model password_reset_tokens {
+  id    String @id @db.VarChar(35)
+  email String @db.VarChar(255)
+  token String @db.VarChar(255)
+}
+
+model students {
+  id                       String     @id @default(uuid())
+  userid                   String?    @db.VarChar(36)
+  subjects                 String?    @db.VarChar(255)
+  extracurricular_activity String?    @db.VarChar(255)
+  classroomid              String?    @db.VarChar(36)
+  parent                   parent[]
+  classroom                classroom? @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                    users?     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model subject {
+  id           String      @id @default(uuid())
+  subject_name String?     @db.VarChar(255)
+  teacher      teacher[]
+  timetable    timetable[]
+}
+
+model teacher {
+  id          String      @id @default(uuid())
+  userid      String?     @db.VarChar(36)
+  classroomid String?     @db.VarChar(36)
+  subjectid   String?     @db.VarChar(36)
+  timetableid String?     @db.VarChar(36)
+  classroom   classroom?  @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subject     subject?    @relation(fields: [subjectid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       users?      @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  timetable   timetable[]
+}
+
+model timetable {
+  id          String     @id @default(uuid())
+  subjectid   String?    @db.VarChar(36)
+  starttime   DateTime?  @db.Time(6)
+  endtime     DateTime?  @db.Time(6)
+  day         String?    @db.VarChar(20)
+  date        DateTime?  @db.Date
+  type        String?    @db.VarChar(20)
+  teacherid   String?    @db.VarChar(36)
+  classroomid String?    @db.VarChar(36)
+  classroom   classroom? @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subject     subject?   @relation(fields: [subjectid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teacher     teacher?   @relation(fields: [teacherid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id            String     @id @default(uuid())
+  first_name    String    @db.VarChar(255)
+  last_name     String    @db.VarChar(255)
+  id_number     String    @db.VarChar(255)
+  date_of_birth String?    @db.VarChar(10)
+  gender        String?    @db.VarChar(10)
+  email         String    @unique @db.VarChar(255)
+  phone_number  String    @db.VarChar(20)
+  address       String?    @db.VarChar(255)
+  role          user_role
+  password      String    @db.VarChar(255)
+  parent        parent[]
+  students      students[]
+  teacher       teacher[]
+}
+
+enum user_role {
+  STUDENT
+  TEACHER
+  PARENT
+  ADMIN
+}
