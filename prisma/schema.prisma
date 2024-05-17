@@ -92,7 +92,7 @@ model users {
   date_of_birth String?    @db.VarChar(10)
   gender        String?    @db.VarChar(10)
   email         String    @unique @db.VarChar(255)
-  phone_number  String    @db.VarChar(20)
+  phone_number  String?    @db.VarChar(20)
   address       String?    @db.VarChar(255)
   role          user_role
   password      String    @db.VarChar(255)
