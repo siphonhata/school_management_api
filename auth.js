@@ -3,6 +3,10 @@ const prisma = new PrismaClient()
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const secret = process.env.ACCESS_TOKEN_SECRET
+
 
 async function hashPassword(password)
 {
@@ -11,7 +15,9 @@ async function hashPassword(password)
   return hashedPassword;
 } 
 
-router.post('/create_user', async (req, res) => {
+router.post('/create_user', async (req, res) => 
+  {
+  console.log(req.body)
     try 
     {
       const 
@@ -22,9 +28,8 @@ router.post('/create_user', async (req, res) => {
       
       const hashedPassword = await hashPassword(password)
       const result = await prisma.users.create({data: {first_name, last_name, id_number, date_of_birth, gender, email, phone_number, address, role, password: hashedPassword}})
-      
-      res.status(201).json(result);
-    } 
+      res.status(201).json({ result: result, message: 'User Created Successfully', success: true });
+    }
     catch (error) 
     {
       console.error('Error creating user:', error);
@@ -54,7 +59,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({success: false, message: 'Invalid password' });
     }
     
-    return res.json({ user: user, message: 'Login successful', success: true });
+    const payload = {
+      id: user.id,
+      uniqueIdentifier: Date.now().toString()
+    };
+    const expiresIn = '15m';
+    const token = jwt.sign(payload, secret, { expiresIn });
+    console.log(token)
+    return res.json({ token: token, user: user, message: 'Login successful', success: true });
   } 
   catch (error) 
   {

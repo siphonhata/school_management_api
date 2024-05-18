@@ -88,7 +88,7 @@ model users {
   id            String     @id @default(uuid())
   first_name    String    @db.VarChar(255)
   last_name     String    @db.VarChar(255)
-  id_number     String    @db.VarChar(255)
+  id_number     String?    @db.VarChar(255)
   date_of_birth String?    @db.VarChar(10)
   gender        String?    @db.VarChar(10)
   email         String    @unique @db.VarChar(255)
