@@ -4,8 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node dist/app.js",
-    "devStart": "nodemon app.js",
+    "start": "tsc && node dist/app.js",
+    "devStart": "nodemon src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "dev": "ts-node-dev --respawn src/app.ts"

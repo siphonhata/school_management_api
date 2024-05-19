@@ -57,14 +57,24 @@ router.post('/login', async (req, res) => {
       id: user.id,
       uniqueIdentifier: Date.now().toString()
     };
-    const expiresIn = '15m';
+    const expiresIn = '60m';
     const token = jwt.sign(payload, secret, { expiresIn });
-    console.log(token);
+    res.set('Authorization', `Bearer ${token}`);
+    res.set("Access-Control-Expose-Headers", "*")
+
     return res.json({ token: token, user: user, message: 'Login successful', success: true });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Login failed', success: false });
   }
 });
+
+router.get('/test', (req: any, res: any) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  res.json({ message: 'Welcome!', user: req.user });
+})
 
 export default router;
