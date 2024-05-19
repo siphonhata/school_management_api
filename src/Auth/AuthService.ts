@@ -25,7 +25,6 @@ export class AuthService {
 
     static isAuthenticated = async (authorization: any) => {
         try {
-            console.log(authorization)
             const tk = authorization ? authorization.split("Bearer ")[1] : null
             if (!tk) return null;
             return await this.#verifyToken(tk)

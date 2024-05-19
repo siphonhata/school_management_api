@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import express from 'express';
+import { env } from 'process';
 const router = express.Router();
 
 const secret = process.env.ACCESS_TOKEN_SECRET as string;
@@ -11,6 +12,27 @@ async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   return hashedPassword;
+}
+
+const extractDoB = (idNumber: string) => {
+  const dateOfBirthString = idNumber.substr(0, 6);
+  const year = parseInt(dateOfBirthString.substr(0, 2), 10);
+  const month = parseInt(dateOfBirthString.substr(2, 2), 10) - 1;
+  const day = parseInt(dateOfBirthString.substr(4, 2), 10);
+  const currentYear = new Date().getFullYear();
+  const fullYear = currentYear - (currentYear % 100) + year;
+  // const dateOfBirth = `${fullYear}-${month}-${day}`;
+  const dateOfBirth = new Date(fullYear, month, day);
+
+  const formattedDateOfBirth = `${dateOfBirth.getFullYear()}-${(dateOfBirth.getMonth() + 1)
+    .toString()
+    .padStart(2, '0')}-${dateOfBirth.getDate().toString().padStart(2, '0')}`;
+
+  // Extract gender
+  const genderDigit = idNumber.charAt(6);
+  const gender = genderDigit === '0' ? 'Female' : 'Male';
+
+  return { dob: formattedDateOfBirth, gender };
 }
 
 router.post('/create_user', async (req, res) => {
@@ -57,7 +79,7 @@ router.post('/login', async (req, res) => {
       id: user.id,
       uniqueIdentifier: Date.now().toString()
     };
-    const expiresIn = '60m';
+    const expiresIn = env.EXPIRY_TIME;
     const token = jwt.sign(payload, secret, { expiresIn });
     res.set('Authorization', `Bearer ${token}`);
     res.set("Access-Control-Expose-Headers", "*")
@@ -69,6 +91,27 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.put('/update', async (req: any, res: any) => {
+  // const { first_name, last_name, id_number, phone_number, email, password, address, biography } = req.body;
+  const { id_number, ...rest } = req.body;
+  const id = req?.user?.id
+  try {
+
+    const { dob, gender } = extractDoB(id_number)
+    const user = await prisma.users.update({
+      where: { id },
+      data: {
+        ...rest,
+        date_of_birth: dob,
+        gender,
+        id_number
+      }
+    })
+    return res.json({ user: user, message: 'Update successful', success: true });
+  } catch (error) {
+    return res.status(404).json({ message: `Update failed ${error}`, success: false });
+  }
+})
 router.get('/test', (req: any, res: any) => {
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
