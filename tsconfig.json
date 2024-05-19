@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@modules/*": [
+        "./src/modules/*"
+      ],
+      "@/common/*": [
+        "./src/common/*"
+      ],
+      "@common/*": [
+        "./src/common/*"
+      ],
+      "@schema/*": [
+        "./src/schema/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}
