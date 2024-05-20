@@ -3,7 +3,7 @@ import { AuthService } from "./AuthService.js";
 
 
 const authMiddleware = async (req: any, res: any, next: any) => {
-    const token = env.TOKEN;
+    const token = req.headers['authorization']
     if (!token) {
         req.user = null;
     } else {
