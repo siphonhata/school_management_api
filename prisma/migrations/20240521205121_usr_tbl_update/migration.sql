@@ -90,17 +90,21 @@ CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "first_name" VARCHAR(255) NOT NULL,
     "last_name" VARCHAR(255) NOT NULL,
-    "id_number" VARCHAR(255) NOT NULL,
+    "id_number" VARCHAR(255),
     "date_of_birth" VARCHAR(10),
     "gender" VARCHAR(10),
     "email" VARCHAR(255) NOT NULL,
-    "phone_number" VARCHAR(20) NOT NULL,
+    "phone_number" VARCHAR(20),
     "address" VARCHAR(255),
     "role" "user_role" NOT NULL,
     "password" VARCHAR(255) NOT NULL,
+    "profilePicture" BYTEA,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- AddForeignKey
 ALTER TABLE "parent" ADD CONSTRAINT "parent_studentid_fkey" FOREIGN KEY ("studentid") REFERENCES "students"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;

@@ -85,20 +85,21 @@ model timetable {
 }
 
 model users {
-  id            String     @id @default(uuid())
-  first_name    String    @db.VarChar(255)
-  last_name     String    @db.VarChar(255)
-  id_number     String?    @db.VarChar(255)
-  date_of_birth String?    @db.VarChar(10)
-  gender        String?    @db.VarChar(10)
-  email         String    @unique @db.VarChar(255)
-  phone_number  String?    @db.VarChar(20)
-  address       String?    @db.VarChar(255)
-  role          user_role
-  password      String    @db.VarChar(255)
-  parent        parent[]
-  students      students[]
-  teacher       teacher[]
+  id             String     @id @default(uuid())
+  first_name     String     @db.VarChar(255)
+  last_name      String     @db.VarChar(255)
+  id_number      String?    @db.VarChar(255)
+  date_of_birth  String?    @db.VarChar(10)
+  gender         String?    @db.VarChar(10)
+  email          String     @unique @db.VarChar(255)
+  phone_number   String?    @db.VarChar(20)
+  address        String?    @db.VarChar(255)
+  role           user_role
+  password       String     @db.VarChar(255)
+  profilePicture Bytes?
+  parent         parent[]
+  students       students[]
+  teacher        teacher[]
 }
 
 enum user_role {

@@ -21,7 +21,6 @@ const extractDoB = (idNumber: string) => {
   const day = parseInt(dateOfBirthString.substr(4, 2), 10);
   const currentYear = new Date().getFullYear();
   const fullYear = currentYear - (currentYear % 100) + year;
-  // const dateOfBirth = `${fullYear}-${month}-${day}`;
   const dateOfBirth = new Date(fullYear, month, day);
 
   const formattedDateOfBirth = `${dateOfBirth.getFullYear()}-${(dateOfBirth.getMonth() + 1)
@@ -36,23 +35,21 @@ const extractDoB = (idNumber: string) => {
 }
 
 router.post('/create_user', async (req, res) => {
-  console.log(req.body);
   try {
     const {
       first_name, last_name, id_number, date_of_birth, gender,
-      email, phone_number, address, role, password,
+      email, phone_number, address, role, password, profilePicture
     } = req.body;
 
     const hashedPassword = await hashPassword(password);
     const result = await prisma.users.create({
       data: {
         first_name, last_name, id_number, date_of_birth, gender,
-        email, phone_number, address, role, password: hashedPassword
+        email, phone_number, address, role, profilePicture, password: hashedPassword
       }
     });
     res.status(201).json({ result: result, message: 'User Created Successfully', success: true });
   } catch (error) {
-    console.error('Error creating user:', error);
     res.status(500).send('Internal Server Error');
   }
 });
@@ -86,13 +83,11 @@ router.post('/login', async (req, res) => {
 
     return res.json({ token: token, user: user, message: 'Login successful', success: true });
   } catch (error) {
-    console.error(error);
     return res.status(500).json({ message: 'Login failed', success: false });
   }
 });
 
 router.put('/update', async (req: any, res: any) => {
-  // const { first_name, last_name, id_number, phone_number, email, password, address, biography } = req.body;
   const { id_number, ...rest } = req.body;
   const id = req?.user?.id
   try {
@@ -119,5 +114,46 @@ router.get('/test', (req: any, res: any) => {
 
   res.json({ message: 'Welcome!', user: req.user });
 })
+
+router.post('/upload', async (req: any, res: any) => {
+  const { image } = req.body;
+  const id = req?.user?.id
+  console.log(req.body)
+
+  try {
+      const buffer = Buffer.from(image, 'base64');
+      const updatedUser = await prisma.users.update({
+          where: { id },
+          data: { profilePicture: buffer },
+      });
+      console.log("Updated User => ", updatedUser)
+      res.json({ message: 'User image updated!', user: updatedUser });
+    
+  } catch (error) {
+    console.log("Updated User Error=> ", error)
+      res.status(500).json({ error: 'Error updating user image' });
+  }
+});
+
+
+router.get('/getuser', async (req: any, res: any) => {
+  const id = req?.user?.id
+  let photo = ""
+  try {
+
+      const user = await prisma.users.findUnique({
+          where: { id },
+      });
+
+      if (user && user.profilePicture) {
+         photo = Buffer.from(user.profilePicture).toString('base64');
+    }
+      res.json({ photo, user, message: "User successfully retrieved", success: true });
+  } 
+  catch (error) 
+  {
+      res.status(404).json({ message: `Error retrieving user ${error}`, success: false});
+  }
+});
 
 export default router;
