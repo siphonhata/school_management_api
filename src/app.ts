@@ -14,7 +14,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 //app.use(bodyParser.json());
 app.use(cors());
 app.use(authMiddleware);
-app.use('/', auth);
+app.use('/api/v1/', auth);
 
 
 // Start the server
