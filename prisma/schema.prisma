@@ -94,8 +94,9 @@ model users {
   email          String     @unique @db.VarChar(255)
   phone_number   String?    @db.VarChar(20)
   address        String?    @db.VarChar(255)
-  role           user_role
+  role           user_role  @default(TEACHER)
   password       String     @db.VarChar(255)
+  bio            String?
   profilePicture Bytes?
   parent         parent[]
   students       students[]
