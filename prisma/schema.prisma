@@ -9,8 +9,8 @@ datasource db {
 
 model classroom {
   id           String      @id @default(uuid())
-  class_number Int?
-  grade        String?     @db.VarChar(10)
+  class_number String?     @db.VarChar(10)
+  grade        Int?
   students     students[]
   teacher      teacher[]
   timetable    timetable[]
