@@ -11,7 +11,6 @@ export const prisma = new PrismaClient();
 const app = express();
 
 app.use(bodyParser.json({ limit: '50mb' }));
-//app.use(bodyParser.json());
 app.use(cors());
 app.use(authMiddleware);
 app.use('/api/v1/', auth);

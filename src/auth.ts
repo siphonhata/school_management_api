@@ -27,20 +27,20 @@ const extractDoB = (idNumber: string) => {
     .toString()
     .padStart(2, '0')}-${dateOfBirth.getDate().toString().padStart(2, '0')}`;
 
-  // Extract gender
   const genderDigit = idNumber.charAt(6);
   const gender = genderDigit === '0' ? 'Female' : 'Male';
 
   return { dob: formattedDateOfBirth, gender };
 }
 
-router.post('/create_user', async (req, res) => {
+router.post('/create_user', async (req: any, res: any) => {
   try {
     const {
       first_name, last_name, id_number, date_of_birth, gender,
       email, phone_number, address, role, password, profilePicture
     } = req.body;
 
+    
     const hashedPassword = await hashPassword(password);
     const result = await prisma.users.create({
       data: {
@@ -50,7 +50,8 @@ router.post('/create_user', async (req, res) => {
     });
     res.status(201).json({ result: result, message: 'User Created Successfully', success: true });
   } catch (error) {
-    res.status(500).send('Internal Server Error');
+
+    res.status(404).send('Not found');
   }
 });
 
@@ -126,11 +127,9 @@ router.post('/upload', async (req: any, res: any) => {
           where: { id },
           data: { profilePicture: buffer },
       });
-      console.log("Updated User => ", updatedUser)
       res.json({ message: 'User image updated!', user: updatedUser });
     
   } catch (error) {
-    console.log("Updated User Error=> ", error)
       res.status(500).json({ error: 'Error updating user image' });
   }
 });
