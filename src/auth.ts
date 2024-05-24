@@ -108,6 +108,7 @@ router.put('/update', async (req: any, res: any) => {
     return res.status(404).json({ message: `Update failed ${error}`, success: false });
   }
 })
+
 router.get('/test', (req: any, res: any) => {
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -134,7 +135,6 @@ router.post('/upload', async (req: any, res: any) => {
   }
 });
 
-
 router.get('/getuser', async (req: any, res: any) => {
   const id = req?.user?.id
   let photo = ""
@@ -152,6 +152,21 @@ router.get('/getuser', async (req: any, res: any) => {
   catch (error) 
   {
       res.status(404).json({ message: `Error retrieving user ${error}`, success: false});
+  }
+});
+
+router.get('/stats', async (req: any, res: any) => {
+  try
+  {
+    const totalStudents = await prisma.students.count();
+    const totalTeachers = await prisma.teacher.count();
+    const totalParents = await prisma.parent.count();
+  
+    res.json({totalStudents, totalTeachers, totalParents, message: "stats success", success: true});
+  }
+  catch(error)
+  {
+    res.status(404).json({ error: 'Error getting stats' });
   }
 });
 
