@@ -7,103 +7,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model classroom {
-  id           String      @id @default(uuid())
-  class_number String?     @db.VarChar(10)
-  grade        Int?
-  students     students[]
-  teacher      teacher[]
-  timetable    timetable[]
-}
-
-model extracurricular_activity {
-  id            String    @id @default(uuid())
-  activity_name String?   @db.VarChar(255)
-  teacher       String?   @db.VarChar(255)
-  description   String?
-  start_date    DateTime? @db.Date
-  end_date      DateTime? @db.Date
-}
-
-model parent {
-  id        String    @id @default(uuid())
-  userid    String?   @db.VarChar(36)
-  studentid String?   @db.VarChar(36)
-  students  students? @relation(fields: [studentid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users     users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model password_reset_tokens {
-  id    String @id @db.VarChar(35)
-  email String @db.VarChar(255)
-  token String @db.VarChar(255)
-}
-
-model students {
-  id                       String     @id @default(uuid())
-  userid                   String?    @db.VarChar(36)
-  subjects                 String?    @db.VarChar(255)
-  extracurricular_activity String?    @db.VarChar(255)
-  classroomid              String?    @db.VarChar(36)
-  parent                   parent[]
-  classroom                classroom? @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                    users?     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model subject {
-  id           String      @id @default(uuid())
-  subject_name String?     @db.VarChar(255)
-  teacher      teacher[]
-  timetable    timetable[]
-}
-
-model teacher {
-  id          String      @id @default(uuid())
-  userid      String?     @db.VarChar(36)
-  classroomid String?     @db.VarChar(36)
-  subjectid   String?     @db.VarChar(36)
-  timetableid String?     @db.VarChar(36)
-  classroom   classroom?  @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  subject     subject?    @relation(fields: [subjectid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users       users?      @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  timetable   timetable[]
-}
-
-model timetable {
-  id          String     @id @default(uuid())
-  subjectid   String?    @db.VarChar(36)
-  starttime   DateTime?  @db.Time(6)
-  endtime     DateTime?  @db.Time(6)
-  day         String?    @db.VarChar(20)
-  date        DateTime?  @db.Date
-  type        String?    @db.VarChar(20)
-  teacherid   String?    @db.VarChar(36)
-  classroomid String?    @db.VarChar(36)
-  classroom   classroom? @relation(fields: [classroomid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  subject     subject?   @relation(fields: [subjectid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  teacher     teacher?   @relation(fields: [teacherid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model users {
-  id             String     @id @default(uuid())
-  first_name     String     @db.VarChar(255)
-  last_name      String     @db.VarChar(255)
-  id_number      String?    @db.VarChar(255)
-  date_of_birth  String?    @db.VarChar(10)
-  gender         String?    @db.VarChar(10)
-  email          String     @unique @db.VarChar(255)
-  phone_number   String?    @db.VarChar(20)
-  address        String?    @db.VarChar(255)
-  role           user_role  @default(TEACHER)
-  password       String     @db.VarChar(255)
+model User {
+  id             String    @id @default(uuid())
+  firstName      String    @db.VarChar(255)
+  lastName       String    @db.VarChar(255)
+  idNumber       String?   @db.VarChar(255)
+  dateOfBirth    DateTime?
+  gender         String?   @db.VarChar(10)
+  email          String    @unique @db.VarChar(255)
+  phoneNumber    String?   @db.VarChar(20)
+  address        Address?  @relation(fields: [addressId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  addressId      String?   @db.VarChar(36)
+  role           UserRole  @default(STUDENT)
+  password       String    @db.VarChar(255)
   bio            String?
   profilePicture Bytes?
-  parent         parent[]
-  students       students[]
-  teacher        teacher[]
+  parent         Parent[]
+  students       Student[]
+  teacher        Teacher[]
+  school         School?   @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId       String?   @db.VarChar(36)
 }
 
-enum user_role {
+model Address {
+  id            String  @id @default(uuid())
+  address       String?
+  city          String?
+  stateProvince String?
+  country       String?
+  postalCode    String?
+  faxNumber     String?
+  User          User[]
+}
+
+model School {
+  id                        String                    @id @default(uuid())
+  name                      String
+  email                     String?                   @unique
+  phoneNumber               String?
+  website                   String?
+  missionStatement          String?
+  totalStudents             Int?
+  enrollmentCapacity        Int?
+  extracurricularActivities ExtracurricularActivity[] // Added association with extracurricular activities
+  staffCount                Int?
+  logo                      Bytes?
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  classrooms                Classroom[]
+  students                  Student[]
+  parents                   Parent[]
+  teachers                  Teacher[]
+  User                      User[]
+}
+
+model Classroom {
+  id          String    @id @default(uuid())
+  classNumber String?   @db.VarChar(10)
+  grade       Int?
+  students    Student[]
+  teacher     Teacher[]
+  school      School?   @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId    String?   @db.VarChar(36)
+  subjects    Subject[]
+}
+
+model Student {
+  id                        String                    @id @default(uuid())
+  userId                    String?                   @db.VarChar(36)
+  extracurricularActivities ExtracurricularActivity[] // Updated to represent many-to-many relationship
+  parent                    Parent[]
+  classroom                 Classroom?                @relation(fields: [classroomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  classroomId               String?                   @db.VarChar(36)
+  school                    School?                   @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId                  String?                   @db.VarChar(36)
+  user                      User?                     @relation(fields: [userId], references: [id])
+}
+
+model Parent {
+  id        String   @id @default(uuid())
+  userId    String?  @db.VarChar(36)
+  studentId String?  @db.VarChar(36)
+  students  Student? @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users     User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId  String?  @db.VarChar(36)
+}
+
+model Teacher {
+  id          String     @id @default(uuid())
+  userId      String?    @db.VarChar(36)
+  classroomId String?    @db.VarChar(36)
+  subjectId   String?    @db.VarChar(36)
+  classroom   Classroom? @relation(fields: [classroomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subject     Subject?   @relation(fields: [subjectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       User?      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  school      School?    @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId    String?    @db.VarChar(36)
+}
+
+model ExtracurricularActivity {
+  id           String    @id @default(uuid())
+  activityName String?   @db.VarChar(255)
+  teacher      String?   @db.VarChar(255)
+  description  String?
+  startDate    DateTime? @db.Date
+  endDate      DateTime? @db.Date
+  school       School?   @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schoolId     String?   @db.VarChar(36)
+  students     Student[] // Updated to represent many-to-many relationship
+}
+
+model Subject {
+  id          String     @id @default(uuid())
+  subjectName String?    @db.VarChar(255)
+  teacher     Teacher[]
+  classroom   Classroom? @relation(fields: [classroomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  classroomId String?    @db.VarChar(36)
+}
+
+enum UserRole {
   STUDENT
   TEACHER
   PARENT
