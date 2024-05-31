@@ -12,7 +12,7 @@ export class AuthService {
                     return null;
                 }
                 const { id } = decoded;
-                const u = await prisma.users.findUnique({
+                const u = await prisma.user.findUnique({
                     where: { id }
                 });
                 return u;

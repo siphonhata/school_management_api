@@ -36,16 +36,15 @@ const extractDoB = (idNumber: string) => {
 router.post('/create_user', async (req: any, res: any) => {
   try {
     const {
-      first_name, last_name, id_number, date_of_birth, gender,
-      email, phone_number, address, role, password, profilePicture
+      firstName, lastName, idNumber, dateOfBirth, gender,
+      email, phoneNumber, address, role, password, profilePicture
     } = req.body;
-
     
     const hashedPassword = await hashPassword(password);
-    const result = await prisma.users.create({
+    const result = await prisma.user.create({
       data: {
-        first_name, last_name, id_number, date_of_birth, gender,
-        email, phone_number, address, role, profilePicture, password: hashedPassword
+        firstName, lastName, idNumber, dateOfBirth, gender,
+        email, phoneNumber, address, role, profilePicture, password: hashedPassword
       }
     });
     res.status(201).json({ result: result, message: 'User Created Successfully', success: true });
@@ -63,7 +62,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = await prisma.users.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ success: false, message: 'User does not exist' });
     }
@@ -89,18 +88,18 @@ router.post('/login', async (req, res) => {
 });
 
 router.put('/update', async (req: any, res: any) => {
-  const { id_number, ...rest } = req.body;
+  const { idNumber, ...rest } = req.body;
   const id = req?.user?.id
   try {
 
-    const { dob, gender } = extractDoB(id_number)
-    const user = await prisma.users.update({
+    const { dob, gender } = extractDoB(idNumber)
+    const user = await prisma.user.update({
       where: { id },
       data: {
         ...rest,
-        date_of_birth: dob,
+        dateOfBirth: dob,
         gender,
-        id_number
+        idNumber
       }
     })
     return res.json({ user: user, message: 'Update successful', success: true });
@@ -124,7 +123,7 @@ router.post('/upload', async (req: any, res: any) => {
 
   try {
       const buffer = Buffer.from(image, 'base64');
-      const updatedUser = await prisma.users.update({
+      const updatedUser = await prisma.user.update({
           where: { id },
           data: { profilePicture: buffer },
       });
@@ -140,7 +139,7 @@ router.get('/getuser', async (req: any, res: any) => {
   let photo = ""
   try {
 
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
           where: { id },
       });
 
@@ -158,7 +157,7 @@ router.get('/getuser', async (req: any, res: any) => {
 router.get('/stats', async (req: any, res: any) => {
   try
   {
-    const totalStudents = await prisma.students.count();
+    const totalStudents = await prisma.student.count();
     const totalTeachers = await prisma.teacher.count();
     const totalParents = await prisma.parent.count();
   
@@ -169,5 +168,8 @@ router.get('/stats', async (req: any, res: any) => {
     res.status(404).json({ error: 'Error getting stats' });
   }
 });
+
+
+
 
 export default router;
