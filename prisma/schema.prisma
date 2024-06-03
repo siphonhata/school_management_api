@@ -126,6 +126,15 @@ model Subject {
   classroomId String?    @db.VarChar(36)
 }
 
+
+model Otp {
+  id              String      @id @default(uuid())
+  email           String
+  code            String
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+}
+
 enum UserRole {
   STUDENT
   TEACHER
