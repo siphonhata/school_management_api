@@ -103,25 +103,69 @@ export const sendOTPEmail = async (to: string, otp: string): Promise<unknown> =>
 
 export const sendVerificationEmail = async (toEmail: string) => {
   try {
-    // Send email
-    await transporter.sendMail({
+    
+    const htmlContent = `
+    <html>
+      <head>
+        <title>School Management System - Account Verified</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5; /* Light gray background */
+          }
+          h1 {
+            color: #3498db; /* Blue heading */
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+          }
+          p {
+            color: #2c3e50; /* Darker gray text */
+            font-size: 16px;
+            line-height: 1.5;
+            text-align: center;
+          }
+          .button {
+            background-color: #3498db; /* Same blue as heading */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 20px;
+            display: inline-block;
+            text-decoration: none;
+          }
+          .button:hover {
+            background-color: #2980b9; /* Darker blue on hover */
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Welcome to School Management System!</h1>
+        <p>Your account has been successfully verified.</p>
+        <p>You can now access all features of the platform.</p>
+        <a href="https://your-school-management-system.com/login" class="button">Go to Login Page</a>
+        <p>Thank you for joining us!</p>
+      </body>
+    </html>
+  `;
+    const mailOptions = {
       from: 'School Management System <no-reply@schoolms.com>',
       to: toEmail,
-      subject: 'Account Verified',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #333;">Account Verified</h2>
-            <p style="color: #666;">Your account has been successfully verified.</p>
-            <p style="color: #666;">Thank you for using the School Management System!</p>
-          </div>
-        </div>
-      `,
-    });
+      subject: 'School Management System - Account Verified',
+      html: htmlContent,
+    };
+
+    // Send the email using the configured transporter
+    await transporter.sendMail(mailOptions);
     console.log('Verification email sent successfully.');
   } catch (error) {
     console.error('Error sending verification email:', error);
-    throw error;
+    throw error; // Re-throw error for handling in calling code
   }
 };
 
