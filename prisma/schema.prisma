@@ -27,6 +27,13 @@ model User {
   teacher        Teacher[]
   school         School?   @relation(fields: [schoolId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   schoolId       String?   @db.VarChar(36)
+  status     UserStatus  @default(UNVERIFIED)
+}
+
+enum UserStatus {
+  UNVERIFIED
+  ACTIVE
+  INACTIVE
 }
 
 model Address {

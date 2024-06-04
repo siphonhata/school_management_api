@@ -24,22 +24,105 @@ const generateOTP = () => {
 };
 
 const transporter: Transporter = nodemailer.createTransport({
-  service: 'gmail', // You can use any email service you prefer
+  service: 'gmail', 
   auth: {
-      user: 'siphonhata@gmail.com', // Your email address
-      pass: 'jvln nqcl iuzk niyp', // Your email password
+      user: process.env.EMAIL_USERNAME, 
+      pass: process.env.EMAIL_PASSWORD,
   },
 });
 
-export const sendOTPEmail = (to: string, otp: string): Promise<unknown> => {
-  const mailOptions: SendMailOptions = {
-      from: 'siphonhata@gmail.com',
-      to,
-      subject: 'School Management System OTP Code',
-      text: `Your OTP code is ${otp}`,
+export const sendOTPEmail = async (to: string, otp: string): Promise<unknown> => {
+
+
+  const htmlContent = `
+  <html>
+    <head>
+      <title>School Management System OTP Code</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+        }
+        h1 {
+          color: #3498db; /* Blue heading */
+          font-size: 24px;
+          margin-bottom: 10px;
+        }
+        p {
+          color: #2c3e50; /* Darker gray text */
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        span {
+          color: #e74c3c; /* Red for OTP code */
+          font-weight: bold;
+        }
+        .footer {
+          font-size: 12px;
+          color: #95a5a6;
+          text-align: center;
+          margin-top: 20px;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>School Management System OTP Code</h1>
+      <p>Here's your One-Time Password (OTP) code to verify your account:</p>
+      <p>
+        <span>${otp}</span>
+      </p>
+      <p>Please enter this code within 10 minutes to complete your verification.</p>
+      <p>Thank you for using the School Management System!</p>
+      <div class="footer">
+        <p>Copyright &copy; ${new Date().getFullYear()} School Management System. All rights reserved.</p>
+      </div>
+    </body>
+  </html>
+`;
+
+
+  const mailOptions = {
+    from: 'School Management System <no-reply@schoolms.com>',
+    to,
+    subject: 'School Management System OTP Code',
+    html: htmlContent,
   };
 
-  return transporter.sendMail(mailOptions);
+
+  try 
+  {
+    await transporter.sendMail(mailOptions);
+    return Promise.resolve
+  } 
+  catch (error) 
+  {  
+    return Promise.reject(error);
+  }
+};
+
+export const sendVerificationEmail = async (toEmail: string) => {
+  try {
+    // Send email
+    await transporter.sendMail({
+      from: 'School Management System <no-reply@schoolms.com>',
+      to: toEmail,
+      subject: 'Account Verified',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px;">
+            <h2 style="color: #333;">Account Verified</h2>
+            <p style="color: #666;">Your account has been successfully verified.</p>
+            <p style="color: #666;">Thank you for using the School Management System!</p>
+          </div>
+        </div>
+      `,
+    });
+    console.log('Verification email sent successfully.');
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw error;
+  }
 };
 
 const extractDoB = (idNumber: string) => {
@@ -63,24 +146,6 @@ const extractDoB = (idNumber: string) => {
   return { dob: formattedDateOfBirth, gender };
 };
 const otps = {};
-
-router.post('/sendOTP', async (req: any, res: any) => {
-  const { email } = req.body;
-  console.log("email => ", email)
-  const otp = generateOTP();
-  console.log("otp => ", otp)
-  otps[email] = otp;
-  console.log("otp Map => ", otps)
-
-  try 
-  {
-      sendOTPEmail(email, otp);
-      res.status(200).json({ message: 'OTP sent successfully' });
-  } catch (error) {
-    console.log(error)
-      res.status(500).json({ error: 'Failed to send OTP' });
-  }
-});
 
 router.post("/create_user", async (req: any, res: any) => {
   try {
@@ -164,7 +229,7 @@ router.post("/login", async (req, res) => {
       success: true,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Login failed", success: false });
+    return res.status(404).json({ message: "Login failed", success: false });
   }
 });
 
@@ -215,7 +280,7 @@ router.post("/upload", async (req: any, res: any) => {
     });
     res.json({ message: "User image updated!", user: updatedUser });
   } catch (error) {
-    res.status(500).json({ error: "Error updating user image" });
+    res.status(404).json({ error: "Error updating user image" });
   }
 });
 
@@ -276,7 +341,7 @@ router.post("/registerAccount", async (req: any, res: any) => {
   } = req.body;
 
   try {
-    // Create school
+    
     const school = await prisma.school.create({
       data: {
         name: schoolname,
@@ -298,12 +363,63 @@ router.post("/registerAccount", async (req: any, res: any) => {
         role: "ADMIN",
       },
     });
-    res.status(201).json({ message: "School and User Admin added successfully", success: true});
+    if (user != null && school != null)
+    {
+      const otp = generateOTP();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+    
+      const createdOtp = await prisma.otp.create({
+        data: {
+          email: user_email,
+          code: otp,
+          expiresAt: otpExpiry,
+        },
+      });
+  
+      await sendOTPEmail(user_email, otp);
+      res.status(200).json({ message: "A verification email has been sent to your email. Please check your email and verify your account to proceed.", success: true});
+    }
   } 
   catch (error) 
   {
     console.log("error => ", error)
-    res.status(500).json({ error: error.message, success: false });
+    res.status(404).json({ error: error.message, success: false });
+  }
+});
+
+router.post('/cccccc', async (req: any, res: any) => {
+  const { email, otp } = req.body;
+
+  try {
+    const otpRecord = await prisma.otp.findFirst({ where: { email } });
+    if (!otpRecord) 
+    {
+      return res.status(404).json({ message: 'OTP not found', success: false });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired', success: false });
+    }
+
+    if (otpRecord.code !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP', success: false });
+    }
+
+    await prisma.user.update({
+      where: {email},
+      data: {status: "ACTIVE"}
+    });
+
+    await prisma.otp.delete({ where: { id: otpRecord.id } });
+
+    await sendVerificationEmail(email);
+
+    return res.status(200).json({ message: 'OTP verified successfully', success: true });
+  } 
+  catch (error) {
+    console.error('Error verifying OTP:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
