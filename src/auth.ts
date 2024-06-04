@@ -189,7 +189,6 @@ const extractDoB = (idNumber: string) => {
 
   return { dob: formattedDateOfBirth, gender };
 };
-const otps = {};
 
 router.post("/create_user", async (req: any, res: any) => {
   try {
