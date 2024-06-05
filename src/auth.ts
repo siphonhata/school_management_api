@@ -8,8 +8,7 @@ import nodemailer, { SendMailOptions, Transporter } from 'nodemailer';
 
 
 const router = express.Router();
-const otpExpiryMinutes = 10;
-
+const otpExpiryMinutes = process.env.OTP_EXPIRY_MINUTE;
 const secret = process.env.ACCESS_TOKEN_SECRET as string;
 const prisma = new PrismaClient();
 
@@ -190,47 +189,100 @@ const extractDoB = (idNumber: string) => {
   return { dob: formattedDateOfBirth, gender };
 };
 
-router.post("/create_user", async (req: any, res: any) => {
-  try {
-    const {
-      firstName,
-      lastName,
-      idNumber,
-      dateOfBirth,
-      gender,
-      email,
-      phoneNumber,
-      address,
-      role,
-      password,
-      profilePicture,
-    } = req.body;
+router.post("/registerAccount", async (req: any, res: any) => {
+  const {
+    schoolname,
+    schoolEmail,
+    schoolWebsite,
+    school_phone_number,
+    mission_statement,
+    user_firstName,
+    user_lastName,
+    user_email,
+    user_password,
+    user_phone_number,
+  } = req.body;
 
-    const hashedPassword = await hashPassword(password);
-    const result = await prisma.user.create({
+  try {
+    
+    const school = await prisma.school.create({
       data: {
-        firstName,
-        lastName,
-        idNumber,
-        dateOfBirth,
-        gender,
-        email,
-        phoneNumber,
-        address,
-        role,
-        profilePicture,
-        password: hashedPassword,
+        name: schoolname,
+        email: schoolEmail,
+        website: schoolWebsite,
+        phoneNumber: school_phone_number,
+        missionStatement: mission_statement,
       },
     });
-    res
-      .status(201)
-      .json({
-        result: result,
-        message: "User Created Successfully",
-        success: true,
+
+    const user = await prisma.user.create({
+      data: {
+        firstName: user_firstName,
+        lastName: user_lastName,
+        email: user_email,
+        password: await hashPassword(user_password),
+        schoolId: school.id,
+        phoneNumber: user_phone_number,
+        role: "ADMIN",
+      },
+    });
+    if (user != null && school != null)
+    {
+      const otp = generateOTP();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+    
+      const createdOtp = await prisma.otp.create({
+        data: {
+          email: user_email,
+          code: otp,
+          expiresAt: otpExpiry,
+        },
       });
-  } catch (error) {
-    res.status(404).send("Not found");
+  
+      await sendOTPEmail(user_email, otp);
+      res.status(200).json({ message: "A verification email has been sent to your email. Please check your email and verify your account to proceed.", success: true});
+    }
+  } 
+  catch (error) 
+  {
+    console.log("error => ", error)
+    res.status(404).json({ error: error.message, success: false });
+  }
+});
+
+router.post('/verifyOTP', async (req: any, res: any) => {
+  const { email, otp } = req.body;
+
+  try {
+    const otpRecord = await prisma.otp.findFirst({ where: { email } });
+    if (!otpRecord) 
+    {
+      return res.status(404).json({ message: 'OTP not found', success: false });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired', success: false });
+    }
+
+    if (otpRecord.code !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP', success: false });
+    }
+
+    await prisma.user.update({
+      where: {email},
+      data: {status: "ACTIVE"}
+    });
+
+    await prisma.otp.delete({ where: { id: otpRecord.id } });
+
+    await sendVerificationEmail(email);
+
+    return res.status(200).json({ message: 'OTP verified successfully', success: true });
+  } 
+  catch (error) {
+    console.error('Error verifying OTP:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -275,6 +327,52 @@ router.post("/login", async (req, res) => {
     return res.status(404).json({ message: "Login failed", success: false });
   }
 });
+
+router.post("/create_user", async (req: any, res: any) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      idNumber,
+      dateOfBirth,
+      gender,
+      email,
+      phoneNumber,
+      address,
+      role,
+      password,
+      profilePicture,
+    } = req.body;
+
+    const hashedPassword = await hashPassword(password);
+    const result = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        idNumber,
+        dateOfBirth,
+        gender,
+        email,
+        phoneNumber,
+        address,
+        role,
+        profilePicture,
+        password: hashedPassword,
+      },
+    });
+    res
+      .status(201)
+      .json({
+        result: result,
+        message: "User Created Successfully",
+        success: true,
+      });
+  } catch (error) {
+    res.status(404).send("Not found");
+  }
+});
+
+
 
 router.put("/update", async (req: any, res: any) => {
   const { idNumber, ...rest } = req.body;
@@ -369,102 +467,9 @@ router.get("/stats", async (req: any, res: any) => {
   }
 });
 
-router.post("/registerAccount", async (req: any, res: any) => {
-  const {
-    schoolname,
-    schoolEmail,
-    schoolWebsite,
-    school_phone_number,
-    mission_statement,
-    user_firstName,
-    user_lastName,
-    user_email,
-    user_password,
-    user_phone_number,
-  } = req.body;
 
-  try {
-    
-    const school = await prisma.school.create({
-      data: {
-        name: schoolname,
-        email: schoolEmail,
-        website: schoolWebsite,
-        phoneNumber: school_phone_number,
-        missionStatement: mission_statement,
-      },
-    });
 
-    const user = await prisma.user.create({
-      data: {
-        firstName: user_firstName,
-        lastName: user_lastName,
-        email: user_email,
-        password: await hashPassword(user_password),
-        schoolId: school.id,
-        phoneNumber: user_phone_number,
-        role: "ADMIN",
-      },
-    });
-    if (user != null && school != null)
-    {
-      const otp = generateOTP();
-      const otpExpiry = new Date();
-      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
-    
-      const createdOtp = await prisma.otp.create({
-        data: {
-          email: user_email,
-          code: otp,
-          expiresAt: otpExpiry,
-        },
-      });
-  
-      await sendOTPEmail(user_email, otp);
-      res.status(200).json({ message: "A verification email has been sent to your email. Please check your email and verify your account to proceed.", success: true});
-    }
-  } 
-  catch (error) 
-  {
-    console.log("error => ", error)
-    res.status(404).json({ error: error.message, success: false });
-  }
-});
 
-router.post('/cccccc', async (req: any, res: any) => {
-  const { email, otp } = req.body;
-
-  try {
-    const otpRecord = await prisma.otp.findFirst({ where: { email } });
-    if (!otpRecord) 
-    {
-      return res.status(404).json({ message: 'OTP not found', success: false });
-    }
-
-    if (otpRecord.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'OTP has expired', success: false });
-    }
-
-    if (otpRecord.code !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP', success: false });
-    }
-
-    await prisma.user.update({
-      where: {email},
-      data: {status: "ACTIVE"}
-    });
-
-    await prisma.otp.delete({ where: { id: otpRecord.id } });
-
-    await sendVerificationEmail(email);
-
-    return res.status(200).json({ message: 'OTP verified successfully', success: true });
-  } 
-  catch (error) {
-    console.error('Error verifying OTP:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 export default router;
 
