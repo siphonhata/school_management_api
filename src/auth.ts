@@ -147,7 +147,7 @@ export const sendVerificationEmail = async (toEmail: string) => {
         <h1>Welcome to School Management System!</h1>
         <p>Your account has been successfully verified.</p>
         <p>You can now access all features of the platform.</p>
-        <a href="https://your-school-management-system.com/login" class="button">Go to Login Page</a>
+        <a href="http://http://localhost:3000/signin" class="button">Go to Login Page</a>
         <p>Thank you for joining us!</p>
       </body>
     </html>
