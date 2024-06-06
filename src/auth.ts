@@ -351,18 +351,21 @@ router.get('/getSchoolByID', async (req: any, res: any) => {
 });
 
 router.put("/update", async (req: any, res: any) => {
-  console.log("UPDATE => ",req.body)
-  const { idNumber, ...rest } = req.body;
+  
+  const { idNumber, address, ...rest } = req.body;
   const id = req?.user?.id;
+
   try {
     const { dob, gender } = extractDoB(idNumber);
+    let dateOfbirth = new Date(dob).toISOString;
     const user = await prisma.user.update({
       where: { id },
       data: {
         ...rest,
-        dateOfBirth: dob,
+        dateOfBirth: JSON.stringify(dateOfbirth),
         gender,
         idNumber,
+        address:{create:{address}}
       },
     });
     return res.json({
@@ -371,6 +374,7 @@ router.put("/update", async (req: any, res: any) => {
       success: true,
     });
   } catch (error) {
+    console.log(error)
     return res
       .status(404)
       .json({ message: `Update failed ${error}`, success: false });
