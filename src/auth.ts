@@ -190,39 +190,40 @@ const extractDoB = (idNumber: string) => {
 };
 
 router.post("/registerAccount", async (req: any, res: any) => {
+  console.log("Form Data => ", req.body)
   const {
-    schoolname,
+    schoolName,
     schoolEmail,
-    schoolWebsite,
-    school_phone_number,
-    mission_statement,
-    user_firstName,
-    user_lastName,
-    user_email,
-    user_password,
-    user_phone_number,
+    websiteLink,
+    schoolPhoneNumber,
+    missionStatement,
+    representativeName,
+    representativeLastName,
+    representativeEmail,
+    password,
+    representativePhoneNumber,
   } = req.body;
 
   try {
     
     const school = await prisma.school.create({
       data: {
-        name: schoolname,
+        name: schoolName,
         email: schoolEmail,
-        website: schoolWebsite,
-        phoneNumber: school_phone_number,
-        missionStatement: mission_statement,
+        website: websiteLink,
+        phoneNumber: schoolPhoneNumber,
+        missionStatement: missionStatement,
       },
     });
 
     const user = await prisma.user.create({
       data: {
-        firstName: user_firstName,
-        lastName: user_lastName,
-        email: user_email,
-        password: await hashPassword(user_password),
+        firstName: representativeName,
+        lastName: representativeLastName,
+        email: representativeEmail,
+        password: await hashPassword(password),
         schoolId: school.id,
-        phoneNumber: user_phone_number,
+        phoneNumber: representativePhoneNumber,
         role: "ADMIN",
       },
     });
@@ -234,13 +235,13 @@ router.post("/registerAccount", async (req: any, res: any) => {
     
       const createdOtp = await prisma.otp.create({
         data: {
-          email: user_email,
+          email: representativeEmail,
           code: otp,
           expiresAt: otpExpiry,
         },
       });
   
-      await sendOTPEmail(user_email, otp);
+      await sendOTPEmail(representativeEmail, otp);
       res.status(200).json({ message: "A verification email has been sent to your email. Please check your email and verify your account to proceed.", success: true});
     }
   } 
