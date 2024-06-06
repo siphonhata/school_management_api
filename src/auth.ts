@@ -190,7 +190,7 @@ const extractDoB = (idNumber: string) => {
 };
 
 router.post("/registerAccount", async (req: any, res: any) => {
-  console.log("Form Data => ", req.body)
+ 
   const {
     schoolName,
     schoolEmail,
