@@ -329,6 +329,54 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get('/getSchoolByID', async (req: any, res: any) => {
+  
+  const { id } = req.query;
+  try {
+    const school = await prisma.school.findUnique({
+      where: {
+        id
+      },
+    });
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found', success: false});
+    }
+
+    res.status(200).json({message: 'School found', success: true, school}); // Return school object
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.put("/update", async (req: any, res: any) => {
+  console.log("UPDATE => ",req.body)
+  const { idNumber, ...rest } = req.body;
+  const id = req?.user?.id;
+  try {
+    const { dob, gender } = extractDoB(idNumber);
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...rest,
+        dateOfBirth: dob,
+        gender,
+        idNumber,
+      },
+    });
+    return res.json({
+      user: user,
+      message: "Update successful",
+      success: true,
+    });
+  } catch (error) {
+    return res
+      .status(404)
+      .json({ message: `Update failed ${error}`, success: false });
+  }
+});
+
 router.post("/create_user", async (req: any, res: any) => {
   try {
     const {
@@ -375,31 +423,7 @@ router.post("/create_user", async (req: any, res: any) => {
 
 
 
-router.put("/update", async (req: any, res: any) => {
-  const { idNumber, ...rest } = req.body;
-  const id = req?.user?.id;
-  try {
-    const { dob, gender } = extractDoB(idNumber);
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        ...rest,
-        dateOfBirth: dob,
-        gender,
-        idNumber,
-      },
-    });
-    return res.json({
-      user: user,
-      message: "Update successful",
-      success: true,
-    });
-  } catch (error) {
-    return res
-      .status(404)
-      .json({ message: `Update failed ${error}`, success: false });
-  }
-});
+
 
 router.get("/test", (req: any, res: any) => {
   if (!req.user) {
