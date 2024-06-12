@@ -161,7 +161,6 @@ export const sendVerificationEmail = async (toEmail: string) => {
 
     // Send the email using the configured transporter
     await transporter.sendMail(mailOptions);
-    console.log('Verification email sent successfully.');
   } catch (error) {
     console.error('Error sending verification email:', error);
     throw error; // Re-throw error for handling in calling code
@@ -189,6 +188,7 @@ const extractDoB = (idNumber: string) => {
   return { dob: formattedDateOfBirth, gender };
 };
 
+/////////////////// ENDPOINT ///////////////////////////////////
 router.post("/registerAccount", async (req: any, res: any) => {
  
   const {
@@ -354,19 +354,23 @@ router.put("/update", async (req: any, res: any) => {
   
   const { idNumber, address, ...rest } = req.body;
   const id = req?.user?.id;
-
+  console.log("ADDRESS",address )
   try {
     const { dob, gender } = extractDoB(idNumber);
-    let dateOfbirth = new Date(dob).toISOString;
     const user = await prisma.user.update({
       where: { id },
       data: {
         ...rest,
-        dateOfBirth: JSON.stringify(dateOfbirth),
+        dateOfBirth: dob,
         gender,
         idNumber,
-        address:{create:{address}}
-      },
+        address: {
+          upsert:{
+            create:{address,},
+            update:{address,}
+          },
+        }
+     },
     });
     return res.json({
       user: user,
@@ -425,10 +429,6 @@ router.post("/create_user", async (req: any, res: any) => {
   }
 });
 
-
-
-
-
 router.get("/test", (req: any, res: any) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -440,8 +440,6 @@ router.get("/test", (req: any, res: any) => {
 router.post("/upload", async (req: any, res: any) => {
   const { image } = req.body;
   const id = req?.user?.id;
-  console.log(req.body);
-
   try {
     const buffer = Buffer.from(image, "base64");
     const updatedUser = await prisma.user.update({
@@ -460,8 +458,11 @@ router.get("/getuser", async (req: any, res: any) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id },
+      include: {
+        address: true,
+      },
     });
-
+    console.log(user)
     if (user && user.profilePicture) {
       photo = Buffer.from(user.profilePicture).toString("base64");
     }

@@ -12,7 +12,7 @@ model User {
   firstName      String    @db.VarChar(255)
   lastName       String    @db.VarChar(255)
   idNumber       String?   @db.VarChar(255)
-  dateOfBirth    DateTime?
+  dateOfBirth     String?   @db.VarChar(20)
   gender         String?   @db.VarChar(10)
   email          String    @unique @db.VarChar(255)
   phoneNumber    String?   @db.VarChar(20)
