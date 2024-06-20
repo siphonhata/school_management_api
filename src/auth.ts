@@ -5,6 +5,7 @@ import express from "express";
 import { env } from "process";
 import crypto from "crypto";
 import nodemailer, { SendMailOptions, Transporter } from 'nodemailer';
+import { PassThrough } from "stream";
 
 
 const router = express.Router();
@@ -289,7 +290,8 @@ router.post('/verifyOTP', async (req: any, res: any) => {
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
+  console.log("email =>", email);
+  console.log("password =>", password);
   if (!email || !password) {
     return res.status(400).json({ error: "Missing email or password" });
   }
@@ -298,7 +300,7 @@ router.post("/login", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res
-        .status(401)
+        .status(404)
         .json({ success: false, message: "User does not exist" });
     }
 
@@ -460,6 +462,7 @@ router.get("/getuser", async (req: any, res: any) => {
       where: { id },
       include: {
         address: true,
+        school: true,
       },
     });
     console.log(user)
@@ -496,10 +499,6 @@ router.get("/stats", async (req: any, res: any) => {
     res.status(404).json({ error: "Error getting stats" });
   }
 });
-
-
-
-
 
 export default router;
 
