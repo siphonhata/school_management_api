@@ -167,8 +167,20 @@ const extractDoB = (idNumber: string) => {
   const year = parseInt(dateOfBirthString.substr(0, 2), 10);
   const month = parseInt(dateOfBirthString.substr(2, 2), 10) - 1;
   const day = parseInt(dateOfBirthString.substr(4, 2), 10);
+
   const currentYear = new Date().getFullYear();
-  const fullYear = currentYear - (currentYear % 100) + year;
+  const currentCentury = Math.floor(currentYear / 100) * 100;
+  let fullYear: any;
+
+  // Determine the full year based on the first two digits of the year part
+  if (year >= 0 && year <= 23) {
+    // Year 2000 and above (assuming current year is not beyond 2099)
+    fullYear = 2000 + year;
+  } else {
+    // Year 1900 to 1999
+    fullYear = 1900 + year;
+  }
+
   const dateOfBirth = new Date(fullYear, month, day);
 
   const formattedDateOfBirth = `${dateOfBirth.getFullYear()}-${(
@@ -177,11 +189,12 @@ const extractDoB = (idNumber: string) => {
     .toString()
     .padStart(2, "0")}-${dateOfBirth.getDate().toString().padStart(2, "0")}`;
 
-  const genderDigit = idNumber.charAt(6);
-  const gender = genderDigit === "0" ? "Female" : "Male";
+  const genderDigit = parseInt(idNumber.charAt(6), 10);
+  const gender = genderDigit < 5 ? "Female" : "Male";
 
   return { dob: formattedDateOfBirth, gender };
 };
+
 
 /////////////////// ENDPOINT ///////////////////////////////////
 router.post("/registerAccount", async (req: any, res: any) => {
