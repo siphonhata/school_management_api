@@ -4,9 +4,8 @@ import jwt from "jsonwebtoken";
 import express from "express";
 import { env } from "process";
 import crypto from "crypto";
-import nodemailer, { SendMailOptions, Transporter } from 'nodemailer';
+import nodemailer, { SendMailOptions, Transporter } from "nodemailer";
 import { PassThrough } from "stream";
-
 
 const router = express.Router();
 const otpExpiryMinutes = process.env.OTP_EXPIRY_MINUTE;
@@ -24,16 +23,17 @@ const generateOTP = () => {
 };
 
 const transporter: Transporter = nodemailer.createTransport({
-  service: 'gmail', 
+  service: "gmail",
   auth: {
-      user: process.env.EMAIL_USERNAME, 
-      pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
-export const sendOTPEmail = async (to: string, otp: string): Promise<unknown> => {
-
-
+export const sendOTPEmail = async (
+  to: string,
+  otp: string
+): Promise<unknown> => {
   const htmlContent = `
   <html>
     <head>
@@ -81,29 +81,23 @@ export const sendOTPEmail = async (to: string, otp: string): Promise<unknown> =>
   </html>
 `;
 
-
   const mailOptions = {
-    from: 'School Management System <no-reply@schoolms.com>',
+    from: "School Management System <no-reply@schoolms.com>",
     to,
-    subject: 'School Management System OTP Code',
+    subject: "School Management System OTP Code",
     html: htmlContent,
   };
 
-
-  try 
-  {
+  try {
     await transporter.sendMail(mailOptions);
-    return Promise.resolve
-  } 
-  catch (error) 
-  {  
+    return Promise.resolve;
+  } catch (error) {
     return Promise.reject(error);
   }
 };
 
 export const sendVerificationEmail = async (toEmail: string) => {
   try {
-    
     const htmlContent = `
     <html>
       <head>
@@ -154,16 +148,16 @@ export const sendVerificationEmail = async (toEmail: string) => {
     </html>
   `;
     const mailOptions = {
-      from: 'School Management System <no-reply@schoolms.com>',
+      from: "School Management System <no-reply@schoolms.com>",
       to: toEmail,
-      subject: 'School Management System - Account Verified',
+      subject: "School Management System - Account Verified",
       html: htmlContent,
     };
 
     // Send the email using the configured transporter
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Error sending verification email:', error);
+    console.error("Error sending verification email:", error);
     throw error; // Re-throw error for handling in calling code
   }
 };
@@ -191,7 +185,6 @@ const extractDoB = (idNumber: string) => {
 
 /////////////////// ENDPOINT ///////////////////////////////////
 router.post("/registerAccount", async (req: any, res: any) => {
- 
   const {
     schoolName,
     schoolEmail,
@@ -206,7 +199,6 @@ router.post("/registerAccount", async (req: any, res: any) => {
   } = req.body;
 
   try {
-    
     const school = await prisma.school.create({
       data: {
         name: schoolName,
@@ -228,12 +220,11 @@ router.post("/registerAccount", async (req: any, res: any) => {
         role: "ADMIN",
       },
     });
-    if (user != null && school != null)
-    {
+    if (user != null && school != null) {
       const otp = generateOTP();
       const otpExpiry = new Date();
       otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
-    
+
       const createdOtp = await prisma.otp.create({
         data: {
           email: representativeEmail,
@@ -241,57 +232,61 @@ router.post("/registerAccount", async (req: any, res: any) => {
           expiresAt: otpExpiry,
         },
       });
-  
+
       await sendOTPEmail(representativeEmail, otp);
-      res.status(200).json({ message: "A verification email has been sent to your email. Please check your email and verify your account to proceed.", success: true});
+      res
+        .status(200)
+        .json({
+          message:
+            "A verification email has been sent to your email. Please check your email and verify your account to proceed.",
+          success: true,
+        });
     }
-  } 
-  catch (error) 
-  {
-    console.log("error => ", error)
+  } catch (error) {
+    console.log("error => ", error);
     res.status(404).json({ error: error.message, success: false });
   }
 });
 
-router.post('/verifyOTP', async (req: any, res: any) => {
+router.post("/verifyOTP", async (req: any, res: any) => {
   const { email, otp } = req.body;
 
   try {
     const otpRecord = await prisma.otp.findFirst({ where: { email } });
-    if (!otpRecord) 
-    {
-      return res.status(404).json({ message: 'OTP not found', success: false });
+    if (!otpRecord) {
+      return res.status(404).json({ message: "OTP not found", success: false });
     }
 
     if (otpRecord.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'OTP has expired', success: false });
+      return res
+        .status(400)
+        .json({ message: "OTP has expired", success: false });
     }
 
     if (otpRecord.code !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP', success: false });
+      return res.status(400).json({ message: "Invalid OTP", success: false });
     }
 
     await prisma.user.update({
-      where: {email},
-      data: {status: "ACTIVE"}
+      where: { email },
+      data: { status: "ACTIVE" },
     });
 
     await prisma.otp.delete({ where: { id: otpRecord.id } });
 
     await sendVerificationEmail(email);
 
-    return res.status(200).json({ message: 'OTP verified successfully', success: true });
-  } 
-  catch (error) {
-    console.error('Error verifying OTP:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res
+      .status(200)
+      .json({ message: "OTP verified successfully", success: true });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log("email =>", email);
-  console.log("password =>", password);
   if (!email || !password) {
     return res.status(400).json({ error: "Missing email or password" });
   }
@@ -331,62 +326,145 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get('/getSchoolByID', async (req: any, res: any) => {
-  
+router.get("/getSchoolByID", async (req: any, res: any) => {
   const { id } = req.query;
   try {
     const school = await prisma.school.findUnique({
       where: {
-        id
+        id,
       },
     });
 
     if (!school) {
-      return res.status(404).json({ message: 'School not found', success: false});
+      return res
+        .status(404)
+        .json({ message: "School not found", success: false });
     }
 
-    res.status(200).json({message: 'School found', success: true, school}); // Return school object
+    res.status(200).json({ message: "School found", success: true, school }); // Return school object
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
 router.put("/update", async (req: any, res: any) => {
-  
-  const { idNumber, address, ...rest } = req.body;
+
+  const { formData, type } = req.body;
+  const { userInfo, address, password, school } = formData;
+  const { idNumber, ...rest } = userInfo;
+
   const id = req?.user?.id;
-  console.log("ADDRESS",address )
+
   try {
-    const { dob, gender } = extractDoB(idNumber);
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        ...rest,
-        dateOfBirth: dob,
-        gender,
-        idNumber,
-        address: {
-          upsert:{
-            create:{address,},
-            update:{address,}
-          },
+    if (type === "user") {
+      try {
+        const updateData = {
+          ...rest,
+          idNumber,
+        };
+
+        if (idNumber) {
+          const { dob, gender } = extractDoB(idNumber);
+          updateData.dateOfBirth = dob;
+          updateData.gender = gender;
         }
-     },
+
+        const user = await prisma.user.update({
+          where: { id },
+          data: updateData,
+        });
+
+        return res.json({
+          user,
+          message: "User info update successful",
+          success: true,
+        });
+
+      } catch (error) {
+        console.error("User update error:", error);
+        return res.status(500).json({
+          message: `User update failed: ${error.message}`,
+          success: false,
+        });
+      }
+    }
+
+    if (type === "password") {
+      try {
+        const { oldPassword, newPassword, confirmPassword } = password;
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+          return res.status(400).json({
+            message: "Please fill in all fields.",
+            success: false,
+          });
+        }
+
+        if (newPassword !== confirmPassword) {
+          return res.status(400).json({
+            message: "New password and confirm password do not match.",
+            success: false,
+          });
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { id },
+        });
+
+        if (!user) {
+          return res.status(404).json({
+            message: "User not found.",
+            success: false,
+          });
+        }
+
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+        console.log(isPasswordValid)
+        if (!isPasswordValid) {
+          return res.status(400).json({
+            message: "Current password is incorrect.",
+            success: false,
+          });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        const updatedUser = await prisma.user.update({
+          where: { id },
+          data: {
+            password: hashedPassword,
+          },
+        });
+
+        return res.json({
+          user: updatedUser,
+          message: "Password update successful",
+          success: true,
+        });
+
+      } catch (error) {
+        console.error("Password update error:", error);
+        return res.status(500).json({
+          message: `Password update failed: ${error.message}`,
+          success: false,
+        });
+      }
+    }
+
+    return res.status(400).json({
+      message: "Invalid update type specified.",
+      success: false,
     });
-    return res.json({
-      user: user,
-      message: "Update successful",
-      success: true,
-    });
+
   } catch (error) {
-    console.log(error)
-    return res
-      .status(404)
-      .json({ message: `Update failed ${error}`, success: false });
+    console.error("Update error:", error);
+    return res.status(500).json({
+      message: `Update failed: ${error.message}`,
+      success: false,
+    });
   }
 });
-
 router.post("/create_user", async (req: any, res: any) => {
   try {
     const {
@@ -419,13 +497,11 @@ router.post("/create_user", async (req: any, res: any) => {
         password: hashedPassword,
       },
     });
-    res
-      .status(201)
-      .json({
-        result: result,
-        message: "User Created Successfully",
-        success: true,
-      });
+    res.status(201).json({
+      result: result,
+      message: "User Created Successfully",
+      success: true,
+    });
   } catch (error) {
     res.status(404).send("Not found");
   }
@@ -465,7 +541,6 @@ router.get("/getuser", async (req: any, res: any) => {
         school: true,
       },
     });
-    console.log(user)
     if (user && user.profilePicture) {
       photo = Buffer.from(user.profilePicture).toString("base64");
     }
@@ -501,5 +576,3 @@ router.get("/stats", async (req: any, res: any) => {
 });
 
 export default router;
-
-
