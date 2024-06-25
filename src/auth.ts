@@ -517,6 +517,7 @@ router.put("/update", async (req: any, res: any) => {
     });
   }
 });
+
 router.post("/create_user", async (req: any, res: any) => {
   try {
     const {
