@@ -174,7 +174,6 @@ const extractDoB = (idNumber: string) => {
 
   // Determine the full year based on the first two digits of the year part
   if (year >= 0 && year <= 23) {
-    // Year 2000 and above (assuming current year is not beyond 2099)
     fullYear = 2000 + year;
   } else {
     // Year 1900 to 1999
@@ -194,8 +193,6 @@ const extractDoB = (idNumber: string) => {
 
   return { dob: formattedDateOfBirth, gender };
 };
-
-
 /////////////////// ENDPOINT ///////////////////////////////////
 router.post("/registerAccount", async (req: any, res: any) => {
   const {
@@ -460,6 +457,39 @@ router.put("/update", async (req: any, res: any) => {
         console.error("Password update error:", error);
         return res.status(500).json({
           message: `Password update failed: ${error.message}`,
+          success: false,
+        });
+      }
+    }
+
+    if (type === "address") {
+      try {
+        const updatedUser = await prisma.user.update({
+          where: { id },
+          data: {
+            address: {
+              upsert: {
+                create: {
+                  ...address,
+                  User: { connect: { id } }
+                },
+                update: {
+                  ...address
+                },
+              },
+            },
+          },
+        });
+  
+        return res.json({
+          user: updatedUser,
+          message: "Address update successful",
+          success: true,
+        });
+      } catch (error) {
+        console.error("Address update error:", error);
+        return res.status(500).json({
+          message: `Address update failed: ${error.message}`,
           success: false,
         });
       }
