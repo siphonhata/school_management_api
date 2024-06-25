@@ -251,7 +251,6 @@ router.post("/registerAccount", async (req: any, res: any) => {
       });
     }
   } catch (error) {
-    console.log("error => ", error);
     res.status(404).json({ error: error.message, success: false });
   }
 });
@@ -433,7 +432,6 @@ router.put("/update", async (req: any, res: any) => {
           oldPassword,
           user.password
         );
-        console.log(isPasswordValid);
         if (!isPasswordValid) {
           return res.status(400).json({
             message: "Current password is incorrect.",
@@ -476,7 +474,7 @@ router.put("/update", async (req: any, res: any) => {
           },
         });
         return res.json({
-          user: "updatedUser",
+          address: updatedAddress,
           message: "Address update successful",
           success: true,
         });
@@ -487,6 +485,31 @@ router.put("/update", async (req: any, res: any) => {
         });
       }
     }
+
+    if (type === "school") {
+      try {
+        const updatedSchool = await prisma.school.upsert({
+          where: { id: user.schoolId },
+          update: {
+            ...school,
+          },
+          create: {
+            ...school,
+          },
+        });
+        return res.json({
+          school: updatedSchool,
+          message: "School update successful",
+          success: true,
+        });
+      } catch (error) {
+        return res.status(500).json({
+          message: `Address update failed: ${error.message}`,
+          success: false,
+        });
+      }
+    }
+
   } catch (error) {
     return res.status(400).json({
       message: "Invalid update type specified.",

@@ -18,7 +18,6 @@ export class AuthService {
                 return u;
             });
         } catch (error) {
-            console.log("Error", error);
             return null;
         }
     };
