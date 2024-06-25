@@ -244,13 +244,11 @@ router.post("/registerAccount", async (req: any, res: any) => {
       });
 
       await sendOTPEmail(representativeEmail, otp);
-      res
-        .status(200)
-        .json({
-          message:
-            "A verification email has been sent to your email. Please check your email and verify your account to proceed.",
-          success: true,
-        });
+      res.status(200).json({
+        message:
+          "A verification email has been sent to your email. Please check your email and verify your account to proceed.",
+        success: true,
+      });
     }
   } catch (error) {
     console.log("error => ", error);
@@ -359,7 +357,6 @@ router.get("/getSchoolByID", async (req: any, res: any) => {
 });
 
 router.put("/update", async (req: any, res: any) => {
-
   const { formData, type } = req.body;
   const { userInfo, address, password, school } = formData;
   const { idNumber, ...rest } = userInfo;
@@ -367,6 +364,10 @@ router.put("/update", async (req: any, res: any) => {
   const id = req?.user?.id;
 
   try {
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
     if (type === "user") {
       try {
         const updateData = {
@@ -390,7 +391,6 @@ router.put("/update", async (req: any, res: any) => {
           message: "User info update successful",
           success: true,
         });
-
       } catch (error) {
         console.error("User update error:", error);
         return res.status(500).json({
@@ -429,8 +429,11 @@ router.put("/update", async (req: any, res: any) => {
           });
         }
 
-        const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
-        console.log(isPasswordValid)
+        const isPasswordValid = await bcrypt.compare(
+          oldPassword,
+          user.password
+        );
+        console.log(isPasswordValid);
         if (!isPasswordValid) {
           return res.status(400).json({
             message: "Current password is incorrect.",
@@ -452,7 +455,6 @@ router.put("/update", async (req: any, res: any) => {
           message: "Password update successful",
           success: true,
         });
-
       } catch (error) {
         console.error("Password update error:", error);
         return res.status(500).json({
@@ -464,39 +466,28 @@ router.put("/update", async (req: any, res: any) => {
 
     if (type === "address") {
       try {
-        const updatedUser = await prisma.user.update({
-          where: { id },
-          data: {
-            address: {
-              upsert: {
-                create: {
-                  ...address,
-                  User: { connect: { id } }
-                },
-                update: {
-                  ...address
-                },
-              },
-            },
+        const updatedAddress = await prisma.address.upsert({
+          where: { id: user.addressId },
+          update: {
+            ...address,
+          },
+          create: {
+            ...address,
           },
         });
-  
         return res.json({
-          user: updatedUser,
+          user: "updatedUser",
           message: "Address update successful",
           success: true,
         });
       } catch (error) {
-        console.error("Address update error:", error);
         return res.status(500).json({
           message: `Address update failed: ${error.message}`,
           success: false,
         });
       }
     }
-
   } catch (error) {
-    
     return res.status(400).json({
       message: "Invalid update type specified.",
       success: false,
