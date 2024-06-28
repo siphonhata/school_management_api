@@ -32,59 +32,15 @@ const transporter: Transporter = nodemailer.createTransport({
 
 export const sendOTPEmail = async (
   to: string,
-  otp: string
+  subject: string,
+  htmlContent: string
 ): Promise<unknown> => {
-  const htmlContent = `
-  <html>
-    <head>
-      <title>School Management System OTP Code</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-        }
-        h1 {
-          color: #3498db; /* Blue heading */
-          font-size: 24px;
-          margin-bottom: 10px;
-        }
-        p {
-          color: #2c3e50; /* Darker gray text */
-          font-size: 16px;
-          line-height: 1.5;
-        }
-        span {
-          color: #e74c3c; /* Red for OTP code */
-          font-weight: bold;
-        }
-        .footer {
-          font-size: 12px;
-          color: #95a5a6;
-          text-align: center;
-          margin-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>School Management System OTP Code</h1>
-      <p>Here's your One-Time Password (OTP) code to verify your account:</p>
-      <p>
-        <span>${otp}</span>
-      </p>
-      <p>Please enter this code within 10 minutes to complete your verification.</p>
-      <p>Thank you for using the School Management System!</p>
-      <div class="footer">
-        <p>Copyright &copy; ${new Date().getFullYear()} School Management System. All rights reserved.</p>
-      </div>
-    </body>
-  </html>
-`;
+ 
 
   const mailOptions = {
     from: "School Management System <no-reply@schoolms.com>",
     to,
-    subject: "School Management System OTP Code",
+    subject: subject,
     html: htmlContent,
   };
 
@@ -242,8 +198,54 @@ router.post("/registerAccount", async (req: any, res: any) => {
           expiresAt: otpExpiry,
         },
       });
-
-      await sendOTPEmail(representativeEmail, otp);
+      const htmlContent = `
+      <html>
+        <head>
+          <title>School Management System OTP Code</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+            }
+            h1 {
+              color: #3498db; /* Blue heading */
+              font-size: 24px;
+              margin-bottom: 10px;
+            }
+            p {
+              color: #2c3e50; /* Darker gray text */
+              font-size: 16px;
+              line-height: 1.5;
+            }
+            span {
+              color: #e74c3c; /* Red for OTP code */
+              font-weight: bold;
+            }
+            .footer {
+              font-size: 12px;
+              color: #95a5a6;
+              text-align: center;
+              margin-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>School Management System OTP Code</h1>
+          <p>Here's your One-Time Password (OTP) code to verify your account:</p>
+          <p>
+            <span>${otp}</span>
+          </p>
+          <p>Please enter this code within 10 minutes to complete your verification.</p>
+          <p>Thank you for using the School Management System!</p>
+          <div class="footer">
+            <p>Copyright &copy; ${new Date().getFullYear()} School Management System. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+      const subject = "School Management System OTP Code"
+      await sendOTPEmail(representativeEmail, subject, htmlContent);
       res.status(200).json({
         message:
           "A verification email has been sent to your email. Please check your email and verify your account to proceed.",
@@ -626,6 +628,80 @@ router.get("/stats", async (req: any, res: any) => {
   } catch (error) {
     res.status(404).json({ error: "Error getting stats" });
   }
+});
+
+router.post('/forgot-password', async (req: any, res: any) => {
+  const { email } = req.body;
+  
+  try
+  {
+    const user = await prisma.user.findUnique({
+      where: {email},
+    });
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+    const resetLink = `http://localhost:3000/reset-password?id=${user.id}`;
+    const subject = "Important: Password Reset Request for Your Account";
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset</title>
+    </head>
+    <body>
+        <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+        <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+    </body>
+    </html>
+  `;
+
+    await sendOTPEmail(email, subject, htmlContent);
+    res.json({
+      user,
+      message: "Forgot-password successfully retrieved",
+      success: true,
+    });
+  } 
+  catch (error) {
+    res
+      .status(404)
+      .json({ message: `Error retrieving user ${error}`, success: false });
+  }
+});
+
+router.post('/reset-password', async (req: any, res: any) => {
+  const { id, newPassword, confirmPassword } = req.body;
+
+  if (!id || !newPassword || !confirmPassword) {
+    return res.status(400).send('All fields are required');
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).send('Passwords do not match');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id }
+  });
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      password: hashedPassword,
+    }
+  });
+  res.json({
+    user,
+    message: "Password has been reset successfully",
+    success: true,
+  });
 });
 
 export default router;
