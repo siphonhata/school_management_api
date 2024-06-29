@@ -4,8 +4,8 @@ import jwt from "jsonwebtoken";
 import express from "express";
 import { env } from "process";
 import crypto from "crypto";
-import nodemailer, { SendMailOptions, Transporter } from "nodemailer";
-import { PassThrough } from "stream";
+import nodemailer, { Transporter } from "nodemailer";
+
 
 const router = express.Router();
 const otpExpiryMinutes = process.env.OTP_EXPIRY_MINUTE;
