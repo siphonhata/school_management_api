@@ -174,7 +174,6 @@ router.post("/registerAccount", async (req: any, res: any) => {
         missionStatement: missionStatement,
       },
     });
-
     const user = await prisma.user.create({
       data: {
         firstName: representativeName,
@@ -253,6 +252,7 @@ router.post("/registerAccount", async (req: any, res: any) => {
       });
     }
   } catch (error) {
+    console.log("ERROR: ", error)
     res.status(404).json({ error: error.message, success: false });
   }
 });
