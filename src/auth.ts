@@ -466,37 +466,65 @@ router.put("/update", async (req: any, res: any) => {
 
     if (type === "address") {
       try {
-        const updatedAddress = await prisma.address.upsert({
-          where: { id: user.addressId },
-          update: {
-            ...address,
-          },
-          create: {
-            ...address,
+        let addressId: any;
+    
+        // Create a new address
+        if (!user?.addressId) {
+          const newAddress = await prisma.address.create({
+            data: {
+              ...address,
+            },
+          });
+          
+          addressId = newAddress.id;
+        } else {
+                   addressId = user.addressId;
+          const updatedAddress = await prisma.address.update({
+            where: {id: addressId},
+            data: {
+              ...address,
+            },
+          });
+
+
+          return res.json({
+            user: updatedAddress,
+            message: "Address updated successfully",
+            success: true,
+          });
+        }
+    
+        const updatedUser = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            address: {
+              connect: { id: addressId },
+            },
           },
         });
+    
         return res.json({
-          address: updatedAddress,
-          message: "Address update successful",
+          user: updatedUser,
+          message: "Address created successfully",
           success: true,
         });
+        
       } catch (error) {
         return res.status(500).json({
-          message: `Address update failed: ${error.message}`,
+          message: `Address operation failed: ${error.message}`,
           success: false,
         });
       }
     }
-
+    
+    
     if (type === "school") {
       try {
-        const updatedSchool = await prisma.school.upsert({
+        const updatedSchool = await prisma.school.update({
           where: { id: user.schoolId },
-          update: {
-            ...school,
-          },
-          create: {
-            ...school,
+          data:
+          {
+              ...school,
           },
         });
         return res.json({
