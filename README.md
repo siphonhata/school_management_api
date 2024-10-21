@@ -71,7 +71,7 @@ The __School Management System__ is a web-based application built using **Expres
 - **Role-Based Access Control**: Each user has access to specific features and data relevant to their role, improving security and usability.
 
 # Future Enhancements:
-- Parent Portal with Enhanced Reporting: Provide a comprehensive report for parents with charts displaying their child’s academic progress over time.
+- **Parent Portal with Enhanced Reporting**: Provide a comprehensive report for parents with charts displaying their child’s academic progress over time.
 - **Notifications**: Real-time notifications for important events, assignments, or messages.
 - **Mobile Application**: Develop a mobile app for more convenient access to the system.
 - **Automated Timetable Generation**: Automatically create and assign class schedules based on teacher availability and subject requirements.
