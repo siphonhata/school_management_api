@@ -8,7 +8,8 @@
     "devStart": "nodemon src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "ts-node-dev --respawn src/app.ts"
+    "dev": "ts-node-dev --respawn src/app.ts",
+    "migrate": "prisma migrate dev"
   },
   "keywords": [],
   "author": "",

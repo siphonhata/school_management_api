@@ -9,8 +9,8 @@ datasource db {
 
 model User {
   id             String    @id @default(uuid())
-  firstName      String    @db.VarChar(255)
-  lastName       String    @db.VarChar(255)
+  firstName      String?    @db.VarChar(255)
+  lastName       String?    @db.VarChar(255)
   idNumber       String?   @db.VarChar(255)
   dateOfBirth     String?   @db.VarChar(20)
   gender         String?   @db.VarChar(10)

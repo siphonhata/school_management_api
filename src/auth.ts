@@ -6,6 +6,28 @@ import { env } from "process";
 import crypto from "crypto";
 import nodemailer, { Transporter } from "nodemailer";
 
+let globalSchoolId = null;
+
+
+// Function to set the global school ID
+const setGlobalSchoolId = (schoolId) => {
+  globalSchoolId = schoolId;
+};
+
+// Function to get the global school ID
+const getGlobalSchoolId = () => {
+  return globalSchoolId;
+};
+
+function generatePassword(length = 12) {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+[]{}|;:,.<>?';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
 
 const router = express.Router();
 const otpExpiryMinutes = process.env.OTP_EXPIRY_MINUTE;
@@ -35,7 +57,7 @@ export const sendOTPEmail = async (
   subject: string,
   htmlContent: string
 ): Promise<unknown> => {
- 
+
 
   const mailOptions = {
     from: "School Management System <no-reply@schoolms.com>",
@@ -324,6 +346,8 @@ router.post("/login", async (req, res) => {
     res.set("Authorization", `Bearer ${token}`);
     res.set("Access-Control-Expose-Headers", "*");
 
+    setGlobalSchoolId(user.schoolId);
+
     return res.json({
       token: token,
       user: user,
@@ -467,7 +491,7 @@ router.put("/update", async (req: any, res: any) => {
     if (type === "address") {
       try {
         let addressId: any;
-    
+
         // Create a new address
         if (!user?.addressId) {
           const newAddress = await prisma.address.create({
@@ -475,12 +499,12 @@ router.put("/update", async (req: any, res: any) => {
               ...address,
             },
           });
-          
+
           addressId = newAddress.id;
         } else {
-                   addressId = user.addressId;
+          addressId = user.addressId;
           const updatedAddress = await prisma.address.update({
-            where: {id: addressId},
+            where: { id: addressId },
             data: {
               ...address,
             },
@@ -493,7 +517,7 @@ router.put("/update", async (req: any, res: any) => {
             success: true,
           });
         }
-    
+
         const updatedUser = await prisma.user.update({
           where: { id: user.id },
           data: {
@@ -502,13 +526,13 @@ router.put("/update", async (req: any, res: any) => {
             },
           },
         });
-    
+
         return res.json({
           user: updatedUser,
           message: "Address created successfully",
           success: true,
         });
-        
+
       } catch (error) {
         return res.status(500).json({
           message: `Address operation failed: ${error.message}`,
@@ -516,15 +540,15 @@ router.put("/update", async (req: any, res: any) => {
         });
       }
     }
-    
-    
+
+
     if (type === "school") {
       try {
         const updatedSchool = await prisma.school.update({
           where: { id: user.schoolId },
           data:
           {
-              ...school,
+            ...school,
           },
         });
         return res.json({
@@ -642,6 +666,7 @@ router.get("/getuser", async (req: any, res: any) => {
 
 router.get("/stats", async (req: any, res: any) => {
   try {
+
     const totalStudents = await prisma.student.count();
     const totalTeachers = await prisma.teacher.count();
     const totalParents = await prisma.parent.count();
@@ -660,11 +685,10 @@ router.get("/stats", async (req: any, res: any) => {
 
 router.post('/forgot-password', async (req: any, res: any) => {
   const { email } = req.body;
-  
-  try
-  {
+
+  try {
     const user = await prisma.user.findUnique({
-      where: {email},
+      where: { email },
     });
     if (!user) {
       return res.status(404).send('User not found');
@@ -694,7 +718,7 @@ router.post('/forgot-password', async (req: any, res: any) => {
       message: "Forgot-password successfully retrieved",
       success: true,
     });
-  } 
+  }
   catch (error) {
     res
       .status(404)
@@ -730,6 +754,109 @@ router.post('/reset-password', async (req: any, res: any) => {
     message: "Password has been reset successfully",
     success: true,
   });
+});
+
+router.post('/invite', async (req: any, res: any) => {
+  const { email, firstName, lastName, role } = req.body;
+
+  if (!email || !role) {
+    return res.status(400).json({ message: 'Email, role are required.', success: false })
+  }
+
+  const password = generatePassword(8);
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const validRoles = ['STUDENT', 'TEACHER', 'PARENT', 'ADMIN'];
+  const normalizedRole = role.toUpperCase();
+
+  if (!validRoles.includes(normalizedRole)) {
+    return res.status(400).json({ error: 'Role must be either STUDENT, TEACHER, PARENT, or ADMIN.' });
+  }
+
+  try {
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: normalizedRole,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        schoolId: getGlobalSchoolId(),
+      }
+    });
+
+    const htmlContent = `
+<html>
+  <head>
+    <title>School Management System Invitation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      h1 {
+        color: #3498db; /* Blue heading */
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+      p {
+        color: #2c3e50; /* Darker gray text */
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      span {
+        color: #e74c3c; /* Red for OTP code */
+        font-weight: bold;
+      }
+      .footer {
+        font-size: 12px;
+        color: #95a5a6;
+        text-align: center;
+        margin-top: 20px;
+      }
+      .button {
+        display: inline-block;
+        padding: 10px 15px;
+        margin: 20px 0;
+        background-color: #3498db; /* Blue button */
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to the School Management System!</h1>
+    <p>You have been invited to join the School Management System for your school.</p>
+    <p>Your Email Address for verification is:</p>
+    <p>
+      <span>${email}</span>
+    </p>
+    <p>Your generated password is:</p>
+    <p>
+      <span>${password}</span>
+    </p>
+    <p></p>
+    <p>Click the link below for further instructions:</p>
+    <p>
+      <a href="https://your-school-management-system.com/instructions" class="button">Click Here for Instructions</a>
+    </p>
+    <p>Thank you for using the School Management System!</p>
+    <div class="footer">
+      <p>Copyright &copy; ${new Date().getFullYear()} School Management System. All rights reserved.</p>
+    </div>
+  </body>
+</html>
+`;
+    const subject = "Invitation to the School Management System";
+    await sendOTPEmail(email, subject, htmlContent);
+    res.status(201).json({ newUser, message: "User created", success: true });
+  }
+  catch (error) {
+    console.log(error)
+    res.status(404).json({ message: "Error", success: false });
+  }
 });
 
 export default router;
